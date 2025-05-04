@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/use-toast";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface Product {
   id: string;
@@ -45,6 +46,8 @@ const Billing = () => {
   const [barcodeInput, setBarcodeInput] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // Focus the barcode input when the component mounts
@@ -72,6 +75,10 @@ const Billing = () => {
       setBarcodeInput("");
       // Reset search results
       setSearchResults([]);
+      // Focus back on the input for quick scanning
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
     } else {
       toast({
         title: "Product Not Found",
@@ -80,6 +87,11 @@ const Billing = () => {
       });
       setSearchResults([]);
     }
+  };
+
+  const handleBarcodeDetected = (barcode: string) => {
+    setBarcodeInput(barcode);
+    handleBarcodeSearch();
   };
 
   const handleProductSearch = (query: string) => {
@@ -140,6 +152,39 @@ const Billing = () => {
     );
   };
 
+  const generatePDF = () => {
+    // Show toast to indicate PDF generation has started
+    toast({
+      title: "Generating Receipt",
+      description: "Your receipt is being generated...",
+    });
+
+    setIsGeneratingReceipt(true);
+
+    // Simulate PDF generation with a timeout
+    setTimeout(() => {
+      setIsGeneratingReceipt(false);
+      
+      // In a real app, you would generate an actual PDF here
+      // For this example, we'll just show a success message
+      toast({
+        title: "Receipt Ready",
+        description: "Your receipt has been generated and is ready for download.",
+      });
+      
+      // Simulate download by creating a fake PDF URL
+      const blob = new Blob(["Simulated PDF content"], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  };
+
   const handleCheckout = () => {
     if (cart.length === 0) {
       toast({
@@ -159,6 +204,9 @@ const Billing = () => {
 
     // In a real app, you would save this to MongoDB
     console.log("Sale completed:", saleData);
+
+    // Generate PDF receipt
+    generatePDF();
 
     toast({
       title: "Sale Completed",
@@ -190,10 +238,15 @@ const Billing = () => {
                       onChange={(e) => handleProductSearch(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleBarcodeSearch()}
                       ref={barcodeInputRef}
+                      className="flex-1"
                     />
                     <Button onClick={handleBarcodeSearch}>
-                      <Barcode className="mr-2 h-4 w-4" />
+                      <Plus className="mr-2 h-4 w-4" />
                       Add
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsScannerOpen(true)}>
+                      <Barcode className="h-4 w-4" />
+                      <span className="sr-only">Scan</span>
                     </Button>
                   </div>
                 </div>
@@ -221,7 +274,15 @@ const Billing = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => addToCart(product)}
+                                onClick={() => {
+                                  addToCart(product);
+                                  // Clear input and focus back for quick scanning
+                                  setBarcodeInput("");
+                                  setSearchResults([]);
+                                  if (barcodeInputRef.current) {
+                                    barcodeInputRef.current.focus();
+                                  }
+                                }}
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
@@ -320,13 +381,19 @@ const Billing = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button className="w-full" size="lg" onClick={handleCheckout}>
-                    Complete Sale
+                  <Button 
+                    className="w-full" 
+                    size="lg" 
+                    onClick={handleCheckout}
+                    disabled={isGeneratingReceipt || cart.length === 0}
+                  >
+                    {isGeneratingReceipt ? "Processing..." : "Complete Sale & Print Receipt"}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full mt-2"
                     onClick={() => setCart([])}
+                    disabled={isGeneratingReceipt || cart.length === 0}
                   >
                     Cancel
                   </Button>
@@ -336,6 +403,14 @@ const Billing = () => {
           </Card>
         </div>
       </div>
+
+      {/* Barcode Scanner */}
+      {isScannerOpen && (
+        <BarcodeScanner 
+          onDetected={handleBarcodeDetected} 
+          onClose={() => setIsScannerOpen(false)} 
+        />
+      )}
     </div>
   );
 };

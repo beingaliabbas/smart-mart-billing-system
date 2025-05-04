@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Label } from "@/components/ui/label";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface Product {
   id: string;
@@ -19,6 +20,7 @@ interface Product {
 const Products = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([
     // Sample product data
@@ -43,6 +45,30 @@ const Products = () => {
     name: "",
     price: "",
   });
+
+  const handleBarcodeDetected = (barcode: string) => {
+    // Find if product already exists with this barcode
+    const existingProduct = products.find(p => p.barcode === barcode);
+    
+    if (existingProduct) {
+      toast({
+        title: "Product Found",
+        description: `${existingProduct.name} already exists in your inventory.`,
+      });
+      setCurrentProduct(existingProduct);
+      setIsEditDialogOpen(true);
+    } else {
+      // Set the barcode in the new product form
+      setNewProduct(prev => ({ ...prev, barcode }));
+      setIsAddDialogOpen(true);
+      
+      // TODO: In a real app, you would fetch product details from an API
+      toast({
+        title: "Barcode Detected",
+        description: `Barcode ${barcode} scanned successfully.`,
+      });
+    }
+  };
 
   const handleAddProduct = () => {
     const price = parseFloat(newProduct.price);
@@ -138,7 +164,7 @@ const Products = () => {
             className="max-w-md"
           />
         </div>
-        <Button variant="outline" onClick={() => {/* TODO: Implement barcode scanning */}}>
+        <Button variant="outline" onClick={() => setIsScannerOpen(true)}>
           <Barcode className="mr-2 h-4 w-4" /> Scan Barcode
         </Button>
       </div>
@@ -215,7 +241,10 @@ const Products = () => {
                   onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
                   placeholder="Enter barcode number"
                 />
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => {
+                  setIsAddDialogOpen(false);
+                  setTimeout(() => setIsScannerOpen(true), 100);
+                }}>
                   <Barcode className="h-4 w-4" />
                 </Button>
               </div>
@@ -262,13 +291,21 @@ const Products = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-barcode">Barcode</Label>
-                <Input
-                  id="edit-barcode"
-                  value={currentProduct.barcode}
-                  onChange={(e) =>
-                    setCurrentProduct({ ...currentProduct, barcode: e.target.value })
-                  }
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="edit-barcode"
+                    value={currentProduct.barcode}
+                    onChange={(e) =>
+                      setCurrentProduct({ ...currentProduct, barcode: e.target.value })
+                    }
+                  />
+                  <Button variant="outline" size="icon" onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setTimeout(() => setIsScannerOpen(true), 100);
+                  }}>
+                    <Barcode className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Product Name</Label>
@@ -301,6 +338,14 @@ const Products = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      {isScannerOpen && (
+        <BarcodeScanner 
+          onDetected={handleBarcodeDetected}
+          onClose={() => setIsScannerOpen(false)}
+        />
+      )}
     </div>
   );
 };
