@@ -6,7 +6,14 @@ const MONGODB_URI = "mongodb://aliabbaszounr1:Aliabbas321@cluster1-shard-00-00.r
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(MONGODB_URI);
+    // Set strictQuery to false to prevent Mongoose from throwing errors on undefined fields
+    mongoose.set('strictQuery', false);
+    
+    const conn = await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return true;
   } catch (error) {

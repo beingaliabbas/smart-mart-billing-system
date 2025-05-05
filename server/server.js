@@ -1,6 +1,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
 const productRoutes = require('./routes/productRoutes');
 const saleRoutes = require('./routes/saleRoutes');
@@ -32,6 +33,12 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, '..', 'dist', 'index.html'));
   });
 }
+
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong on the server!' });
+});
 
 const PORT = process.env.PORT || 5000;
 

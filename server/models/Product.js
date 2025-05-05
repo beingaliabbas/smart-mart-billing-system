@@ -28,6 +28,21 @@ const productSchema = mongoose.Schema({
   timestamps: true
 });
 
+// Pre-save middleware to ensure ID is set
+productSchema.pre('save', function(next) {
+  // If ID isn't set, create one
+  if (!this.id) {
+    this.id = Date.now().toString();
+  }
+  
+  // If createdAt isn't set, create one
+  if (!this.createdAt) {
+    this.createdAt = new Date().toISOString();
+  }
+  
+  next();
+});
+
 const Product = mongoose.model('Product', productSchema);
 
 module.exports = Product;

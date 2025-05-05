@@ -51,7 +51,7 @@ router.get('/:id/receipt', async (req, res) => {
     }
     
     // Create a PDF document
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50 });
     
     // Set response headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
@@ -73,7 +73,9 @@ router.get('/:id/receipt', async (req, res) => {
     
     // Add items
     sale.items.forEach(item => {
-      doc.fontSize(12).text(`${item.name} x ${item.quantity} = PKR ${item.total.toFixed(2)}`);
+      doc.fontSize(12).text(`${item.name}`);
+      doc.fontSize(10).text(`   ${item.quantity} x PKR ${item.price.toFixed(2)} = PKR ${item.total.toFixed(2)}`);
+      doc.moveDown(0.5);
     });
     
     doc.moveDown();
@@ -83,6 +85,7 @@ router.get('/:id/receipt', async (req, res) => {
     // Add footer
     doc.moveDown(2);
     doc.fontSize(10).text('Thank you for shopping with us!', { align: 'center' });
+    doc.fontSize(8).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
     
     // Finalize the PDF
     doc.end();

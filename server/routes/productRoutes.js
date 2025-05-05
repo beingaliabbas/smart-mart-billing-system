@@ -8,7 +8,7 @@ const Product = require('../models/Product');
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find({});
+    const products = await Product.find({}).sort({ createdAt: -1 });
     res.json(products);
   } catch (error) {
     console.error(error);
@@ -41,12 +41,14 @@ router.post('/', async (req, res) => {
   try {
     const { barcode, name, price } = req.body;
     
+    // Check if product with this barcode already exists
     const productExists = await Product.findOne({ barcode });
     
     if (productExists) {
       return res.status(400).json({ message: 'Product already exists' });
     }
     
+    // Create new product
     const product = new Product({
       id: Date.now().toString(),
       barcode,
@@ -58,7 +60,11 @@ router.post('/', async (req, res) => {
     const createdProduct = await product.save();
     res.status(201).json(createdProduct);
   } catch (error) {
-    console.error(error);
+    console.error("Error creating product:", error);
+    // Check for duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Product with this barcode already exists' });
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 });
@@ -73,6 +79,14 @@ router.put('/:id', async (req, res) => {
     const product = await Product.findOne({ id: req.params.id });
     
     if (product) {
+      // If barcode is being changed, check if new barcode already exists
+      if (barcode && barcode !== product.barcode) {
+        const existingProduct = await Product.findOne({ barcode });
+        if (existingProduct && existingProduct.id !== product.id) {
+          return res.status(400).json({ message: 'Product with this barcode already exists' });
+        }
+      }
+      
       product.name = name || product.name;
       product.price = price || product.price;
       product.barcode = barcode || product.barcode;
@@ -84,6 +98,10 @@ router.put('/:id', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
+    // Check for duplicate key error (MongoDB error code 11000)
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Product with this barcode already exists' });
+    }
     res.status(500).json({ message: 'Server Error' });
   }
 });

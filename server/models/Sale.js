@@ -43,6 +43,21 @@ const saleSchema = mongoose.Schema({
   timestamps: true
 });
 
+// Pre-save middleware to ensure ID is set
+saleSchema.pre('save', function(next) {
+  // If ID isn't set, create one
+  if (!this.id) {
+    this.id = `SALE-${Date.now()}`;
+  }
+  
+  // If date isn't set, create one
+  if (!this.date) {
+    this.date = new Date().toISOString();
+  }
+  
+  next();
+});
+
 const Sale = mongoose.model('Sale', saleSchema);
 
 module.exports = Sale;
