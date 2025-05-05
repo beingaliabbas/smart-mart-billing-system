@@ -13,6 +13,7 @@ const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -37,12 +38,12 @@ const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
+        setCameraError("Couldn't access your camera. Please check permissions.");
         toast({
           title: "Camera Error",
           description: "Couldn't access your camera. Please check permissions.",
           variant: "destructive",
         });
-        onClose();
       }
     };
     
@@ -103,12 +104,6 @@ const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
     };
     
     const fallbackScan = () => {
-      // This is a fallback for browsers that don't support BarcodeDetector API
-      // In a real application, you would integrate with a JS library like quagga.js or zbar.js
-      // For this example, we'll just continue scanning frames
-      animationFrameId = requestAnimationFrame(scanBarcode);
-      
-      // TODO: Implement proper barcode scanning here with a library
       // For demo purposes, we'll simulate a detection after 5 seconds
       setTimeout(() => {
         if (stream && videoRef.current && !videoRef.current.paused) {
@@ -126,6 +121,9 @@ const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
           onClose();
         }
       }, 5000);
+      
+      // Also continue frame scanning
+      animationFrameId = requestAnimationFrame(scanBarcode);
     };
     
     initializeCamera();
@@ -154,29 +152,41 @@ const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
         </Button>
         
         <div className="bg-black rounded-lg overflow-hidden shadow-lg">
-          {isInitializing && (
+          {isInitializing && !cameraError && (
             <div className="absolute inset-0 flex items-center justify-center text-white">
               Accessing camera...
             </div>
           )}
-          <div className="relative">
-            <video 
-              ref={videoRef} 
-              className="w-full h-auto"
-              playsInline 
-              muted
-            />
-            <canvas 
-              ref={canvasRef} 
-              className="absolute top-0 left-0 w-full h-full opacity-0"
-            />
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="w-3/4 h-1/4 mx-auto my-auto border-2 border-red-500 rounded-lg"></div>
+          
+          {cameraError && (
+            <div className="flex flex-col items-center justify-center p-8 text-white text-center">
+              <p className="mb-4">{cameraError}</p>
+              <Button onClick={onClose}>Close</Button>
             </div>
-          </div>
-          <div className="bg-black text-white p-4 text-center">
-            Position the barcode within the frame
-          </div>
+          )}
+          
+          {!cameraError && (
+            <>
+              <div className="relative">
+                <video 
+                  ref={videoRef} 
+                  className="w-full h-auto"
+                  playsInline 
+                  muted
+                />
+                <canvas 
+                  ref={canvasRef} 
+                  className="absolute top-0 left-0 w-full h-full opacity-0"
+                />
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="w-3/4 h-1/4 mx-auto my-auto border-2 border-red-500 rounded-lg"></div>
+                </div>
+              </div>
+              <div className="bg-black text-white p-4 text-center">
+                Position the barcode within the frame
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

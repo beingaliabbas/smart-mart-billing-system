@@ -11,27 +11,30 @@ import SalesHistory from "./pages/SalesHistory";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import { AppProvider } from "./contexts/AppContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="products" element={<Products />} />
-            <Route path="billing" element={<Billing />} />
-            <Route path="sales" element={<SalesHistory />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AppProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<Products />} />
+              <Route path="billing" element={<Billing />} />
+              <Route path="sales" element={<SalesHistory />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppProvider>
   </QueryClientProvider>
 );
 
