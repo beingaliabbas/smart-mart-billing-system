@@ -1,5 +1,11 @@
 
 import { toast } from "@/components/ui/use-toast";
+import { 
+  fetchProductsFromDB, 
+  saveProductsToDB, 
+  fetchSalesFromDB, 
+  saveSalesToDB 
+} from "@/utils/mongoDBInfo";
 
 // Types for our API data
 export interface Product {
@@ -25,13 +31,12 @@ export interface Sale {
   total: number;
 }
 
-// Mock API services to be replaced with real backend calls later
+// API services with MongoDB integration
 export const ProductService = {
   async getAll(): Promise<Product[]> {
     try {
-      // This will be replaced with a fetch call to the backend
-      const products = localStorage.getItem('products');
-      return products ? JSON.parse(products) : [];
+      // Use MongoDB integration to fetch products
+      return await fetchProductsFromDB();
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -55,8 +60,8 @@ export const ProductService = {
         createdAt: new Date().toISOString(),
       };
       
-      // Save to localStorage (temporary)
-      localStorage.setItem('products', JSON.stringify([...existingProducts, newProduct]));
+      // Save to database
+      await saveProductsToDB([...existingProducts, newProduct]);
       
       return newProduct;
     } catch (error) {
@@ -74,7 +79,7 @@ export const ProductService = {
     try {
       const products = await this.getAll();
       const updatedProducts = products.map(p => p.id === product.id ? product : p);
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      await saveProductsToDB(updatedProducts);
       return product;
     } catch (error) {
       console.error("Error updating product:", error);
@@ -91,7 +96,7 @@ export const ProductService = {
     try {
       const products = await this.getAll();
       const filteredProducts = products.filter(p => p.id !== id);
-      localStorage.setItem('products', JSON.stringify(filteredProducts));
+      await saveProductsToDB(filteredProducts);
     } catch (error) {
       console.error("Error deleting product:", error);
       toast({
@@ -117,8 +122,8 @@ export const ProductService = {
 export const SaleService = {
   async getAll(): Promise<Sale[]> {
     try {
-      const sales = localStorage.getItem('sales');
-      return sales ? JSON.parse(sales) : [];
+      // Use MongoDB integration to fetch sales
+      return await fetchSalesFromDB();
     } catch (error) {
       console.error("Error fetching sales:", error);
       toast({
@@ -141,7 +146,8 @@ export const SaleService = {
         total,
       };
       
-      localStorage.setItem('sales', JSON.stringify([...sales, newSale]));
+      // Save to database
+      await saveSalesToDB([...sales, newSale]);
       
       return newSale;
     } catch (error) {

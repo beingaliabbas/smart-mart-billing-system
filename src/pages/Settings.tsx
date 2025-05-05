@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
+import { testConnection } from "@/utils/mongoDBInfo";
 
 const Settings = () => {
   const [storeSettings, setStoreSettings] = useState({
@@ -34,7 +34,8 @@ const Settings = () => {
   });
 
   const [databaseSettings, setDatabaseSettings] = useState({
-    connectionString: "mongodb://aliabbaszounr1:*****@cluster1-shard-00-00.rpo2r.mongodb.net:27017,...",
+    connectionString: "mongodb://aliabbaszounr1:******@cluster1-shard-00-00.rpo2r.mongodb.net:27017,...",
+    isConnecting: false,
   });
 
   const handleStoreSettingsChange = (
@@ -53,6 +54,42 @@ const Settings = () => {
       description: `${type} settings have been saved successfully.`,
     });
   };
+  
+  const handleTestConnection = async () => {
+    setDatabaseSettings({
+      ...databaseSettings,
+      isConnecting: true,
+    });
+    
+    try {
+      const success = await testConnection();
+      
+      if (success) {
+        toast({
+          title: "Connection Successful",
+          description: "Successfully connected to MongoDB database.",
+        });
+      } else {
+        toast({
+          title: "Connection Failed",
+          description: "Failed to connect to MongoDB. Please check your connection string.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error testing connection:", error);
+      toast({
+        title: "Connection Error",
+        description: "An error occurred while testing the connection.",
+        variant: "destructive",
+      });
+    } finally {
+      setDatabaseSettings({
+        ...databaseSettings,
+        isConnecting: false,
+      });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -68,6 +105,7 @@ const Settings = () => {
           <TabsTrigger value="database">Database</TabsTrigger>
         </TabsList>
         
+        {/* Store Settings Tab */}
         <TabsContent value="store" className="mt-4">
           <Card>
             <CardHeader>
@@ -140,6 +178,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Receipt Settings Tab */}
         <TabsContent value="receipt" className="mt-4">
           <Card>
             <CardHeader>
@@ -228,12 +267,13 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Database Settings Tab */}
         <TabsContent value="database" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Database Connection</CardTitle>
+              <CardTitle>MongoDB Connection</CardTitle>
               <CardDescription>
-                Configure your MongoDB connection. Be careful with these settings.
+                Your MongoDB connection is configured. For security, the password is hidden.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -242,26 +282,27 @@ const Settings = () => {
                 <Input
                   id="connectionString"
                   value={databaseSettings.connectionString}
-                  onChange={(e) =>
-                    setDatabaseSettings({
-                      ...databaseSettings,
-                      connectionString: e.target.value,
-                    })
-                  }
+                  disabled
                 />
                 <p className="text-xs text-muted-foreground">
-                  For security, password is hidden. To change the connection string, please enter the full string including the password.
+                  For security, the full connection string is not displayed. The connection is configured for your MongoDB Atlas cluster.
                 </p>
               </div>
               <div className="pt-2">
                 <p className="text-sm">
-                  <strong>Warning:</strong> Changing the database connection string may cause data
-                  access issues. Make sure the connection string is correct before saving.
+                  <strong>Note:</strong> Your application is using a MongoDB connection. In a production environment, 
+                  the connection string should be stored securely as an environment variable on your server.
                 </p>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline">Test Connection</Button>
+              <Button 
+                variant="outline" 
+                onClick={handleTestConnection}
+                disabled={databaseSettings.isConnecting}
+              >
+                {databaseSettings.isConnecting ? "Testing..." : "Test Connection"}
+              </Button>
               <Button onClick={() => handleSaveSettings("Database")}>Save</Button>
             </CardFooter>
           </Card>
