@@ -1,11 +1,7 @@
 
 import { toast } from "@/components/ui/use-toast";
-import { 
-  fetchProductsFromDB, 
-  saveProductsToDB, 
-  fetchSalesFromDB, 
-  saveSalesToDB 
-} from "@/utils/mongoDBInfo";
+
+const API_URL = "http://localhost:5000/api";
 
 // Types for our API data
 export interface Product {
@@ -31,12 +27,15 @@ export interface Sale {
   total: number;
 }
 
-// API services with MongoDB integration
+// API services using backend server
 export const ProductService = {
   async getAll(): Promise<Product[]> {
     try {
-      // Use MongoDB integration to fetch products
-      return await fetchProductsFromDB();
+      const response = await fetch(`${API_URL}/products`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -44,26 +43,27 @@ export const ProductService = {
         description: "Failed to fetch products. Please try again.",
         variant: "destructive",
       });
-      return [];
+      // Fallback to localStorage
+      const products = localStorage.getItem('products');
+      return products ? JSON.parse(products) : [];
     }
   },
   
   async add(product: Omit<Product, 'id' | 'createdAt'>): Promise<Product> {
     try {
-      // Get existing products
-      const existingProducts = await this.getAll();
+      const response = await fetch(`${API_URL}/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
       
-      // Create new product
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        ...product,
-        createdAt: new Date().toISOString(),
-      };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Save to database
-      await saveProductsToDB([...existingProducts, newProduct]);
-      
-      return newProduct;
+      return await response.json();
     } catch (error) {
       console.error("Error adding product:", error);
       toast({
@@ -77,10 +77,19 @@ export const ProductService = {
   
   async update(product: Product): Promise<Product> {
     try {
-      const products = await this.getAll();
-      const updatedProducts = products.map(p => p.id === product.id ? product : p);
-      await saveProductsToDB(updatedProducts);
-      return product;
+      const response = await fetch(`${API_URL}/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error("Error updating product:", error);
       toast({
@@ -94,9 +103,13 @@ export const ProductService = {
   
   async delete(id: string): Promise<void> {
     try {
-      const products = await this.getAll();
-      const filteredProducts = products.filter(p => p.id !== id);
-      await saveProductsToDB(filteredProducts);
+      const response = await fetch(`${API_URL}/products/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     } catch (error) {
       console.error("Error deleting product:", error);
       toast({
@@ -110,8 +123,17 @@ export const ProductService = {
   
   async findByBarcode(barcode: string): Promise<Product | null> {
     try {
-      const products = await this.getAll();
-      return products.find(p => p.barcode === barcode) || null;
+      const response = await fetch(`${API_URL}/products/barcode/${barcode}`);
+      
+      if (response.status === 404) {
+        return null;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error("Error finding product:", error);
       return null;
@@ -122,8 +144,13 @@ export const ProductService = {
 export const SaleService = {
   async getAll(): Promise<Sale[]> {
     try {
-      // Use MongoDB integration to fetch sales
-      return await fetchSalesFromDB();
+      const response = await fetch(`${API_URL}/sales`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
     } catch (error) {
       console.error("Error fetching sales:", error);
       toast({
@@ -131,25 +158,27 @@ export const SaleService = {
         description: "Failed to fetch sales history. Please try again.",
         variant: "destructive",
       });
-      return [];
+      // Fallback to localStorage
+      const sales = localStorage.getItem('sales');
+      return sales ? JSON.parse(sales) : [];
     }
   },
   
   async add(items: SaleItem[], total: number): Promise<Sale> {
     try {
-      const sales = await this.getAll();
+      const response = await fetch(`${API_URL}/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items, total }),
+      });
       
-      const newSale: Sale = {
-        id: `SALE-${Date.now()}`,
-        date: new Date().toISOString(),
-        items,
-        total,
-      };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Save to database
-      await saveSalesToDB([...sales, newSale]);
-      
-      return newSale;
+      return await response.json();
     } catch (error) {
       console.error("Error adding sale:", error);
       toast({
@@ -163,8 +192,22 @@ export const SaleService = {
   
   async generateReceipt(sale: Sale): Promise<Blob> {
     try {
-      // This would be replaced with an actual PDF generation
-      // For now, just return a simple text blob
+      const response = await fetch(`${API_URL}/sales/${sale.id}/receipt`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.blob();
+    } catch (error) {
+      console.error("Error generating receipt:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate receipt. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Fallback to simple text blob
       const receiptText = `
         Sales Receipt
         ID: ${sale.id}
@@ -177,14 +220,6 @@ export const SaleService = {
       `;
       
       return new Blob([receiptText], { type: 'text/plain' });
-    } catch (error) {
-      console.error("Error generating receipt:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate receipt. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
     }
   }
 };
